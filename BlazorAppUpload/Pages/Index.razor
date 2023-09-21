@@ -1,0 +1,166 @@
+﻿@page "/"
+@using System.Net.Mail;
+@using System.Net;
+@using System.Text.RegularExpressions;
+@inject AzureStorageHelper AzureStorageHelper
+@inject SendMailHelper SendMailHelper
+@inject IConfiguration Configuration
+
+<h3>Upload .docx File to Azure</h3>
+
+<div style="margin:50px; margin-left:0px; ">
+    Your email address:
+    <div>
+        <input @bind="mailTo" />
+        <p style="color: red;">@msg</p>
+    </div>
+</div>
+
+<div class="dropArea @dropClass">
+    Drag and drop file here, or click to select.
+    <InputFile
+               OnChange="OnFileInputFileChange"
+    @ondragenter="HandleDragEnter"
+    @ondragleave="HandleDragLeave" />
+</div>
+
+<div>@UploadMessage</div>
+
+<div style="margin-top:50px">
+    <input type="submit" value="Submit" @onclick="Submit" />
+</div>
+
+<br />
+
+@code
+{
+    bool Uploading = false;
+    string UploadMessage = "";
+    string FileUrl = "";
+    long UploadedBytes;
+    long TotalBytes;
+    string mailTo = "";
+    string msg = "";
+    string newFileNameWithoutPath = "";
+    string filename = "";
+
+    string dropClass = "";
+    void HandleDragEnter()
+    {
+        dropClass = "dropAreaDrug";
+    }
+    void HandleDragLeave()
+    {
+        dropClass = string.Empty;
+    }
+
+    /// <summary>
+    ///Occurs when a file is selected or dropped
+    ///</summary>
+    ///<param name="args"></param>
+    ///<returns></returns>
+
+    async Task OnFileInputFileChange(InputFileChangeEventArgs args)
+    {
+        var name = args.File.Name;
+        if (name.EndsWith(".docx"))
+        {
+            UploadedBytes = 0;
+
+            Uploading = true;
+            await InvokeAsync(StateHasChanged);
+
+            TotalBytes = args.File.Size;
+            long percent = 0;
+            long chunkSize = 32256;
+            long numChunks = TotalBytes / chunkSize;
+            long remainder = TotalBytes % chunkSize;
+
+            string justFileName = Path.GetFileName(args.File.Name);
+            string extension = Path.GetExtension(args.File.Name);
+            newFileNameWithoutPath = $"{justFileName}";
+            newFileNameWithoutPath.Concat(DateTime.Now.Ticks.ToString());
+            newFileNameWithoutPath.Concat($"{extension}");
+            filename = $"{Environment.CurrentDirectory}\\files\\{newFileNameWithoutPath}";
+
+            UploadMessage = "Upload Complete.";
+
+            using (File.OpenWrite(filename))
+
+                if (File.Exists(filename))
+                {
+                    File.Delete(filename);
+                }
+
+            await InvokeAsync(StateHasChanged);
+
+            // using (var inStream = args.File.OpenReadStream(long.MaxValue))
+            // {
+            //     using (var outStream = File.OpenWrite(filename))
+            //     {
+            //         while (UploadedBytes < TotalBytes)
+            //         {
+            //             var whatsLeft = TotalBytes - UploadedBytes;
+            //             if (whatsLeft < chunkSize)
+            //                 chunkSize = remainder;
+            //             var bytes = new byte[chunkSize];
+            //             var buffer = new Memory<byte>(bytes);
+            //             var read = await inStream.ReadAsync(buffer);
+            //             await outStream.WriteAsync(bytes, 0, read);
+            //             UploadedBytes += read;
+            //             percent = UploadedBytes * 100 / TotalBytes;
+            //             UploadMessage = $"Uploading{args.File.Name} {percent}%";
+            //             await InvokeAsync(StateHasChanged);
+            //         }
+            //     }
+            // }
+
+            if (File.Exists(filename))
+            {
+                File.Delete(filename);
+            }
+
+        }   
+
+        else UploadMessage = "You can upload only '.docx' files. Please, try again.";
+    }
+
+    async Task Submit()
+    {
+        SendMailHelper.EmailTo = mailTo;
+        SendMailHelper.ValidateEmail();
+        string baseUrl = Configuration["StorageBaseUrl"];
+        string containerName = Configuration["ContainerName"];
+        if (filename == "")
+        {
+            UploadMessage = "Choose file";
+        }
+        else {
+            if (SendMailHelper.MailIsValid == false && mailTo != "")
+            {
+                msg = "Invalid email address";
+            }
+
+            else if (mailTo == "")
+            {
+                msg = "Write email address";
+            }
+            else
+            {
+                string result = await AzureStorageHelper.UploadFile(containerName, filename, newFileNameWithoutPath, true);
+                if (result == "")
+                {
+                    UploadMessage = "Error uploading file";
+                }
+                else
+                {
+                    msg = "";
+                    SendMailHelper.SendMail();
+                    UploadMessage = "Done! You can upload another file";
+                    File.Delete(filename);
+                    Uploading = false;
+                }
+            }
+        }
+    }
+}

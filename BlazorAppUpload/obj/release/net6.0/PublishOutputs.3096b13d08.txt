@@ -1,0 +1,15 @@
+D:\huinya2\publish\BlazorAppUpload.exe
+D:\huinya2\publish\appsettings.Development.json
+D:\huinya2\publish\appsettings.json
+D:\huinya2\publish\BlazorAppUpload.dll
+D:\huinya2\publish\BlazorAppUpload.deps.json
+D:\huinya2\publish\BlazorAppUpload.runtimeconfig.json
+D:\huinya2\publish\BlazorAppUpload.pdb
+D:\huinya2\publish\Azure.Core.dll
+D:\huinya2\publish\Azure.Storage.Blobs.dll
+D:\huinya2\publish\Azure.Storage.Common.dll
+D:\huinya2\publish\Microsoft.Bcl.AsyncInterfaces.dll
+D:\huinya2\publish\Microsoft.FeatureManagement.dll
+D:\huinya2\publish\System.Diagnostics.DiagnosticSource.dll
+D:\huinya2\publish\System.IO.Hashing.dll
+D:\huinya2\publish\System.Memory.Data.dll
